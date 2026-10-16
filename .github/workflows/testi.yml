@@ -1,0 +1,37 @@
+# Workflow repoja s testi (orodja/deli.sh ga skopira v .github/workflows/):
+# ob pushu ali ročnem zagonu ustvari teste in jih naloži v release naloge.
+# Vsa logika je v orodja/ci/generiraj.sh.
+name: testi
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      naloge:
+        description: "Mape nalog, ločene s presledki (npr. src/v02/zlivanje); prazno = vse"
+        required: false
+        default: ""
+
+permissions:
+  contents: write   # ustvarjanje releasov in premikanje tagov
+
+# zagoni si ne smejo hkrati spreminjati istih releasov
+concurrency:
+  group: testi
+  cancel-in-progress: false
+
+jobs:
+  testi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # za git diff s commitom pred pushem
+      - name: Generiranje in objava testov
+        run: bash orodja/ci/generiraj.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PRED: ${{ github.event.before }}
+          NALOGE: ${{ inputs.naloge }}
